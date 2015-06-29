@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Noah Team&#39;s Blog">
+    <title>Use Jenkins and MsDeploy for website continuous delivery and deployment - Noah Team&#39;s Blog</title>
+    <meta name="author" content="Noah">
+    <meta name="description" content="Noah Team&#39;s Blog">
+    <link rel="icon" href="/assets/images/null">
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style.min.css" type="text/css">
+    <!--STYLES END-->
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <header id="header" data-behavior="1">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="http://noahteam.com">Noah Team&#39;s Blog</a>
+    </h1>
+    
+        <a class="header-right-picture" href="/#about">
+            <img class="header-picture" src="/assets/images/titanavatar.png"/>
+        </a>
+    
+</header>
+            <nav id="sidebar" data-behavior="1">
+    
+    <div class="sidebar-profile">
+        <a href="/#about">
+            
+            <img class="sidebar-profile-picture" src="/assets/images/titanavatar.png"/>
+            
+        </a>
+        <span class="sidebar-profile-name">Noah</span>
+    </div>
+    
+    
+    <ul class="sidebar-buttons">
+        
+        <li class="sidebar-button">
+            
+                <a  class="sidebar-button-link " href="/">
+            
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">Home</span>
+                </a>
+        </li>
+        
+        <li class="sidebar-button">
+            
+                <a  class="sidebar-button-link " href="/all-categories">
+            
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">Categories</span>
+                </a>
+        </li>
+        
+        <li class="sidebar-button">
+            
+                <a  class="sidebar-button-link " href="/all-tags">
+            
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">Tags</span>
+                </a>
+        </li>
+        
+        <li class="sidebar-button">
+            
+                <a  class="sidebar-button-link " href="/all-archives">
+            
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">Archives</span>
+                </a>
+        </li>
+        
+        <li class="sidebar-button">
+            
+                <a  class="sidebar-button-link st-search-show-outputs" href="/#search">
+            
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">Search</span>
+                </a>
+        </li>
+        
+        <li class="sidebar-button">
+            
+                <a  class="sidebar-button-link " href="/#about">
+            
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">About me</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+    <ul class="sidebar-buttons">
+        
+    </ul>
+    
+    <ul class="sidebar-buttons">
+        
+        <li class="sidebar-button">
+            
+                <a  class="sidebar-button-link " href="/atom.xml">
+            
+                    <i class="sidebar-button-icon fa fa-lg fa-rss"></i>
+                    <span class="sidebar-button-desc">RSS</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+            <div id="main" data-behavior="1">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+        <div class="post-header main-content-wrap">
+    
+        <h1 class="post-title" itemprop="headline">Use Jenkins and MsDeploy for website continuous delivery and deployment</h1>
+    
+    <div class="post-meta">
+    <time  itemprop="datePublished" content="Mon Jun 29 2015 21:45:15 GMT+0800">
+        Jun 29, 2015
+    </time>
+    
+</div>
+</div>
+    
+    <div class="post-content markdown main-content-wrap" itemprop="articleBody">
+        <h2 id="About">About</h2><p>Normally for software development, we will have at least 2 environments: local development and production environment.  It will be a tough task for developer or server administrators to do manual release if there are too many projects or the release is too frequent.</p>
+<p>In this post, I will show how to config Jenkins and set up MsDeploy to do continuous delivery and automatic website deployment .</p>
+<h2 id="Prerequiste">Prerequiste</h2><p>This post will assume you have already set up your Jenkins, you are using TFS for source control (of course it is just small modification if you are using Git or SVN), and you are using IIS (version &gt;= 7.0) as your web server.</p>
+<h2 id="Steps">Steps</h2><ul>
+<li><p><strong>Set up Jenkins job for pull latest and build</strong><br>This step is similar as what we did for other projects which are running on our Jenkins for continuous integration and testing.</p>
+<p>Use Jenkins TFS plug-in to get latest periodically</p>
+<p><img src="http://7qn89w.com1.z0.glb.clouddn.com/use-jenkins-and-msdeploy-for-website-deployment-1.jpg" alt="alt text"></p>
+<p>Use Jenkins MSBuild plug-in or use powershell to build solution</p>
+<p><img src="http://7qn89w.com1.z0.glb.clouddn.com/use-jenkins-and-msdeploy-for-website-deployment-2.jpg" alt="alt text"></p>
+</li>
+</ul>
+<ul>
+<li><strong>Set up msdeploy</strong><ol>
+<li><a href="http://www.iis.net/downloads/microsoft/web-deploy" target="_blank" rel="external">Download</a> and install msdeploy on your both source and target server</li>
+<li>Ensure <strong>Web Management Service</strong> and <strong>Web Deployment Agent Service</strong> are running on your target server, they are necessary for remote deployment</li>
+</ol>
+</li>
+</ul>
+<ul>
+<li><strong>Prepare domain administrator account</strong><br>To use msdeploy to deploy website to target server’s IIS root path, the account must be a <strong>domain administrator account</strong>.<br>Sounds weird right? Since it only needs to be that server’s admin to have full permission for folders. Someone believe this is a bug.</li>
+</ul>
+<ul>
+<li><p><strong>Powershell to run msdeploy</strong></p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msdeploy.exe -allowUntrusted=true -verb:sync -source:contentpath=&#39;D:\WS\ExampleProject&#39; -dest:contentpath=F:\webfolder,computerName=exampleproject.example.com,Username=&#39;yourdomain\username&#39;,Password=&#39;password&#39; -skip:objectName=dirPath,absolutePath=&#34;config&#34; -skip:objectName=filePath,absolutePath=&#34;web.config&#34;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>-verb:sync</strong>, execute operation which synchronizes data between source and destination</li>
+<li><strong>source:contentpath</strong>, specifies we are using contentpath as provider, and will sync everything from that directory to target</li>
+<li><strong>dest:contentpath</strong>, specifies the folder that content will be synced to</li>
+<li><strong>computerName=exampleproject.example.com,Username=’yourdomain\username’,Password=’password’</strong>, the target server with IIS</li>
+<li><strong>skip</strong>, to ignore folders or files, e.g. we don’t want local config files by synced to production environment, which may break the website</li>
+</ul>
+</li>
+</ul>
+<p> We have set up another job on Jenkins to auto deploy website to production environment</p>
+<p> When run the script, will get output like this:<br> <figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Info: Updating file (F:\exampleproject\web_root\menu\Main.aspx).&#10;Info: Updating file (F:\exampleproject\web_root\menu\Main.aspx.cs).&#10;Info: Updating file (F:\exampleproject\web_root\menu\Menu.aspx).&#10;Info: Updating file (F:\exampleproject\web_root\menu\M&#10;&#10;http://santexgroup.com/blog/continuous-delivery-using-asp-net-mvc4-web-api/&#10;&#10;http://blog.winhost.com/using-msdeploy-to-publish-your-site/enu.aspx.cs).&#10;Info: Updating file (F:\exampleproject\web_root\public\access-forbidden.html).&#10;Total changes: 259 (0 added, 0 deleted, 259 updated, 0 parameters changed, 21623463 bytes copied)</span><br></pre></td></tr></table></figure></p>
+<h2 id="Trouble_Shooting">Trouble Shooting</h2><p>During the set up, I have met some issues, and I found this page is very useful for understanding those issues and trouble shooting</p>
+<blockquote>
+<p>For certain common error cases, Web Deploy will show an error code. This table explains why the error occurs and steps the user can take to avoid the error. Note that the error message may be different depending on how Web Deploy is invoked e.g. Microsoft WebMatrix chooses to show custom error messages. The error messages listed below show up on the msdeploy.exe command line and API:<br><a href="http://www.iis.net/learn/publish/troubleshooting-web-deploy/web-deploy-error-codes" target="_blank" rel="external">http://www.iis.net/learn/publish/troubleshooting-web-deploy/web-deploy-error-codes</a></p>
+</blockquote>
+<h2 id="More">More</h2><p>If you have interest to know more about msdeploy and its advanced usage, below are some good references:</p>
+<p> <a href="https://technet.microsoft.com/en-us/library/dd568996(v=ws.10).aspx" target="_blank" rel="external">https://technet.microsoft.com/en-us/library/dd568996(v=ws.10).aspx</a></p>
+<p> <a href="http://santexgroup.com/blog/continuous-delivery-using-asp-net-mvc4-web-api/" target="_blank" rel="external">http://santexgroup.com/blog/continuous-delivery-using-asp-net-mvc4-web-api/</a></p>
+<p> <a href="http://blog.winhost.com/using-msdeploy-to-publish-your-site/" target="_blank" rel="external">http://blog.winhost.com/using-msdeploy-to-publish-your-site/</a></p>
+
+        
+            
+        
+    </div>
+    <div class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">TAGGED IN</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/CI/">CI</a> <a class="tag tag--primary tag--small t-link" href="/tags/Jenkins/">Jenkins</a> <a class="tag tag--primary tag--small t-link" href="/tags/msdeploy/">msdeploy</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/06/29/css @media query/"  data-tooltip="Introduction to CSS3 @media query">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">PREVIOUS</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/06/29/filter-ip-in-a-ip-range/" data-tooltip="How to filter a IP from a IP range">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">NEXT</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://noahteam.com/2015/06/29/use-jenkins-and-msdeploy-for-website-deployment/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://noahteam.com/2015/06/29/use-jenkins-and-msdeploy-for-website-deployment/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://noahteam.com/2015/06/29/use-jenkins-and-msdeploy-for-website-deployment/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" href="#disqus_thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+    </ul>
+</div>
+
+
+        
+            <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2015 Noah. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="1">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/06/29/css @media query/"  data-tooltip="Introduction to CSS3 @media query">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">PREVIOUS</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/06/29/filter-ip-in-a-ip-range/" data-tooltip="How to filter a IP from a IP range">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">NEXT</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://noahteam.com/2015/06/29/use-jenkins-and-msdeploy-for-website-deployment/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://noahteam.com/2015/06/29/use-jenkins-and-msdeploy-for-website-deployment/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://noahteam.com/2015/06/29/use-jenkins-and-msdeploy-for-website-deployment/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" href="#disqus_thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+    </ul>
+</div>
+
+
+                </div>
+            
+        </div>
+        <div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/titanavatar.png"/>
+        
+            <h4 id="about-card-name">Noah</h4>
+        
+        
+        
+    </div>
+</div>
+        <div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/script.min.js" type="text/javascript"></script>
+<!--SCRIPTS END-->
+
+    <script type="text/javascript">
+        var disqus_shortname = 'noahteam';
+        (function() {
+            var dsq = document.createElement('script');
+            dsq.type = 'text/javascript';
+            dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+
+
+
+</html>
