@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="generator" content="Noah Team&#39;s Blog">
-    <title>Connection Timeout Issue for MSSQL - Noah Team&#39;s Blog</title>
+    <title>Introduction to Table-Valued Parameter - Noah Team&#39;s Blog</title>
     <meta name="author" content="Noah">
     <meta name="description" content="Noah Team&#39;s Blog">
     <link rel="icon" href="/assets/images/null">
@@ -134,27 +134,34 @@
     
         <div class="post-header main-content-wrap">
     
-        <h1 class="post-title" itemprop="headline">Connection Timeout Issue for MSSQL</h1>
+        <h1 class="post-title" itemprop="headline">Introduction to Table-Valued Parameter</h1>
     
     <div class="post-meta">
-    <time  itemprop="datePublished" content="Tue Jul 21 2015 11:06:48 GMT+0800">
-        Jul 21, 2015
+    <time  itemprop="datePublished" content="Mon Nov 16 2015 01:25:19 GMT+0800">
+        Nov 16, 2015
     </time>
     
 </div>
 </div>
     
     <div class="post-content markdown main-content-wrap" itemprop="articleBody">
-        <p>This post is to address connection fast timeout issue for MSSQL when using default connection timeout.</p>
-<h2 id="Content">Content</h2><p>The default value for MSSQL timeout of connection is 15sec. However, sometimes application connecting to a SQL Server Database may timeout within milliseconds<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">System<span class="class">.Data</span><span class="class">.SqlClient</span><span class="class">.SqlException</span>: Timeout expired. The timeout period elapsed prior to completion of the operation or the server is not responding.</span><br><span class="line">    at System<span class="class">.Data</span><span class="class">.ProviderBase</span><span class="class">.DbConnectionPool</span><span class="class">.GetConnection</span>(DbConnection owningObject)</span><br><span class="line">    at System<span class="class">.Data</span><span class="class">.ProviderBase</span><span class="class">.DbConnectionFactory</span><span class="class">.GetConnection</span>(DbConnection owningConnection)</span><br><span class="line">    at System<span class="class">.Data</span><span class="class">.ProviderBase</span><span class="class">.DbConnectionPool</span><span class="class">.GetConnection</span>(DbConnection owningObject)</span><br><span class="line">    at System<span class="class">.Data</span><span class="class">.ProviderBase</span><span class="class">.DbConnectionFactory</span><span class="class">.GetConnection</span>(DbConnection owningConnection)</span><br><span class="line">    at   System<span class="class">.Data</span><span class="class">.ProviderBase</span><span class="class">.DbConnectionClosed</span><span class="class">.OpenConnection</span>(DbConnection outerConnection, DbConnectionFactory connectionFactory)</span><br><span class="line">    at System<span class="class">.Data</span><span class="class">.SqlClient</span><span class="class">.SqlConnection</span><span class="class">.Open</span>()</span><br></pre></td></tr></table></figure></p>
-<p>The issue happens, because, SQLClient uses the connection retry algorithm (for TCP/IP Connections), and sets the initial connection timeout value as 15*0.08 = 1.2s and first tries to connect to the principal SQL server and if fails, then, tries to connect to mirrored SQL Server (the fact that the database is mirrored, may come from the connection string or SQLClient may collect this information, the first time it connects to the database). If this connection attempt also fails due to timeout (because of slow response from SQL Server or due to network delays), the SQLClient incorrectly sets the connection to doomed state, giving the connection timeout exception, without further connection retry attempt to principal.</p>
-<p>Microsoft has confirmed that this is a problem in the current release of ADO.NET. This issue will be fixed in ADO.NET version, ships with Visual Studio 2011.</p>
-<p>In the meantime, we request to use the following workarounds:</p>
-<ol>
-<li>Increase the connection string timeout to 150 sec. This will give the first attempt enough time to connect( 150* .08=12 sec)</li>
-<li>Add MinPool Size=20 in the connection string. This will always maintain a minimum of 20 connections in the pool and there will be less chances of creating new connection, thus reducing the chance of this error.</li>
-<li>Improve the network performance. Update your NIC drivers to the latest firmware version. We have seen network latency when your NIC card is not compatible with certain Scalable Networking Pack settings. If you are on Windows Vista SP1 or above you may also consider disabling Receive Window Auto-Tuning. If you have NIC teaming enabled, disabling it would be a good option.</li>
+        <h2 id="About">About</h2><p>Table valued parameters is a way to pass Datatable as a parameter to a stored procedure.</p>
+<h2 id="Dapper_way">Dapper way</h2><p>The object has to be converted into Datatable in order to be passed as table valued parameter to SQL server.</p>
+<h2 id="SqlCommand_way">SqlCommand way</h2><p>Set <em>SqlParameter.SqlDbType = SqlDbType.Structured;</em> and <em>SqlParameter.TypeName = {Table-Valued Parameter name}</em></p>
+<h2 id="Pros">Pros</h2><ol>
+<li>Connect to DB one time, so that connection overhead can be reduced.</li>
+<li>Easy to handle multiple updates in stored procedure.</li>
+<li>Cached upon frequent use</li>
+<li>More intuitive as application passing a list of class object to SQL server.</li>
 </ol>
+<h2 id="Cons">Cons</h2><ol>
+<li>Table-valued parameters can only be indexed to support UNIQUE or PRIMARY KEY constraints.</li>
+<li>SQL server does not maintain statistics on the TVP Columns.</li>
+<li>The input is ReadOnly parameter, cannot perform DML operation (UPDATE, DELETE, or INSERT) on it.</li>
+<li>Cannot pass table valued parameter to CLR user-defined function</li>
+</ol>
+<h2 id="Things_to_take_note">Things to take note</h2><p>If needs to alter and release a existing table valued parameter, it requires drop all dependencies. For example, recreate those stored procedure to use a new table valued parameter.</p>
+<h2 id="Reference">Reference</h2><p><a href="https://msdn.microsoft.com/en-us/library/bb675163.aspx" target="_blank" rel="external">https://msdn.microsoft.com/en-us/library/bb675163.aspx</a><br><a href="https://msdn.microsoft.com/en-us/library/bb510489.aspx" target="_blank" rel="external">https://msdn.microsoft.com/en-us/library/bb510489.aspx</a><br><a href="http://www.dbdelta.com/maximizing-performance-with-table-valued-parameters/" target="_blank" rel="external">http://www.dbdelta.com/maximizing-performance-with-table-valued-parameters/</a><br><a href="http://www.codeproject.com/Articles/835519/Passing-Table-Valued-Parameters-with-Dapper" target="_blank" rel="external">http://www.codeproject.com/Articles/835519/Passing-Table-Valued-Parameters-with-Dapper</a></p>
 
         
             
@@ -162,19 +169,12 @@
     </div>
     <div class="post-footer main-content-wrap">
         
-            <div class="post-footer-tags">
-                <span class="text-color-light text-small">TAGGED IN</span><br/>
-                
-    <a class="tag tag--primary tag--small t-link" href="/tags/mssql/">mssql</a>
-
-            </div>
-        
         <div class="post-actions-wrap">
     <nav>
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
-                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/07/21/implement-permission-control-for-mvc5-project/"  data-tooltip="Implement Permission Control for MVC5 Project">
+                    <a class="post-action-btn btn btn--disabled">
                 
                     <i class="fa fa-angle-left"></i>
                     <span class="hide-xs hide-sm text-small icon-ml">PREVIOUS</span>
@@ -182,7 +182,7 @@
             </li>
             <li class="post-action">
                 
-                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/07/21/how-to-store-performance-monitor-data-in-sql-server/" data-tooltip="How to store performance monitor data in SQL server database">
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/11/16/Binding Event on Datatables/" data-tooltip="Binding Event on Datatables">
                 
                     <span class="hide-xs hide-sm text-small icon-mr">NEXT</span>
                     <i class="fa fa-angle-right"></i>
@@ -192,17 +192,17 @@
     </nav>
     <ul class="post-actions post-action-share">
         <li class="post-action">
-            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://noahteam.com/2015/07/21/connection-timeout-issue-for-mssql/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://noahteam.com/2015/11/16/Introduction-to-Table-Valued-Parameter/">
                 <i class="fa fa-google-plus"></i>
             </a>
         </li>
         <li class="post-action">
-            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://noahteam.com/2015/07/21/connection-timeout-issue-for-mssql/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://noahteam.com/2015/11/16/Introduction-to-Table-Valued-Parameter/">
                 <i class="fa fa-facebook-official"></i>
             </a>
         </li>
         <li class="post-action">
-            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://noahteam.com/2015/07/21/connection-timeout-issue-for-mssql/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://noahteam.com/2015/11/16/Introduction-to-Table-Valued-Parameter/">
                 <i class="fa fa-twitter"></i>
             </a>
         </li>
@@ -241,7 +241,7 @@
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
-                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/07/21/implement-permission-control-for-mvc5-project/"  data-tooltip="Implement Permission Control for MVC5 Project">
+                    <a class="post-action-btn btn btn--disabled">
                 
                     <i class="fa fa-angle-left"></i>
                     <span class="hide-xs hide-sm text-small icon-ml">PREVIOUS</span>
@@ -249,7 +249,7 @@
             </li>
             <li class="post-action">
                 
-                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/07/21/how-to-store-performance-monitor-data-in-sql-server/" data-tooltip="How to store performance monitor data in SQL server database">
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2015/11/16/Binding Event on Datatables/" data-tooltip="Binding Event on Datatables">
                 
                     <span class="hide-xs hide-sm text-small icon-mr">NEXT</span>
                     <i class="fa fa-angle-right"></i>
@@ -259,17 +259,17 @@
     </nav>
     <ul class="post-actions post-action-share">
         <li class="post-action">
-            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://noahteam.com/2015/07/21/connection-timeout-issue-for-mssql/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://noahteam.com/2015/11/16/Introduction-to-Table-Valued-Parameter/">
                 <i class="fa fa-google-plus"></i>
             </a>
         </li>
         <li class="post-action">
-            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://noahteam.com/2015/07/21/connection-timeout-issue-for-mssql/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://noahteam.com/2015/11/16/Introduction-to-Table-Valued-Parameter/">
                 <i class="fa fa-facebook-official"></i>
             </a>
         </li>
         <li class="post-action">
-            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://noahteam.com/2015/07/21/connection-timeout-issue-for-mssql/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://noahteam.com/2015/11/16/Introduction-to-Table-Valued-Parameter/">
                 <i class="fa fa-twitter"></i>
             </a>
         </li>
